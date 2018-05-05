@@ -1,0 +1,10 @@
+.DS_store
+
+.env
+
+instance/
+.webassets-cache
+
+__pycache__/
+*.py[cod]
+*$py.class

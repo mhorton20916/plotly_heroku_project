@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Bugs? In MY Bellybutton?</title>
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
+</head>
+<body>
+    <!-- <nav class='navbar navbar-expand-lg navbar-dark bg-primary'>
+        <a class='navbar-brand' href="#">BB</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class='collapse navbar-collapse' id='navbarColor01'>
+            <ul class='navbar-nav mr-auto'>
+                <li class='nav-item'>
+                    
+
+                </li>
+
+            </ul>
+        </div>
+    </nav> -->
+    <div class='container text-center'>
+        <div class='jumbotron jumbotron-fluid'>
+            <!-- <h1>Belly Button Biodome,</h1>
+            <h3>by Bacterium and aBlution</h3> -->
+            <h1>Bugs? In <b>MY</b> Bellybutton?</h1>
+        </div>
+    </div>
+    <div class='container'>
+        <div class='row'>
+            <div class='col-md-2 col-sm-12'>
+                <div class='row'>
+                    <div class='card' style='width: 12rem;'>
+                        <div class='card-header'>SELECT Sample:</div>
+                        <div class='card-body'>
+                            <select class='form-control' id="selDataSet" onchange="optionChanged(this.value)"></select>
+                        </div>
+                        
+                    </div>
+                </div>
+                <div class='row'>
+                    <div class='card' style='width: 12rem;'>
+                        <div class='card-header'>Sample Data:</div>
+                        <div class='card-body'>
+                            <div id='metadataHolder'></div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            <div class='col-md-5'>
+                <div id='gage'></div>
+            </div>
+            <div class='col-md-5'>
+                <div id='pie'></div>
+            </div>
+        </div>
+        <div class='row'>
+            <div class='col-md-12'>
+                <div id='bubble'></div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script type='text/javascript'>
+        var names_list = [];
+        var optionSelector = Plotly.d3.select('#selDataSet');
+        var metadataHolder = Plotly.d3.select('#metadataHolder');
+
+        
+        function optionChanged(opt) {
+            Plotly.d3.json(`/metadata/${opt}`, function(error,response) {
+                // console.log(response)
+                metadataHolder.selectAll('p').remove()
+                metadataHolder.selectAll('br').remove()
+                metadataHolder.append('p')
+                            .text(`AGE: ${response.AGE}`)
+                            .append('br')
+                metadataHolder.append('p')
+                            .text(`BBTYPE: ${response.BBTYPE}`)
+                            .append('br')
+                metadataHolder.append('p')
+                            .text(`ETHNICITY: ${response.ETHNICITY}`)
+                            .append('br')
+                metadataHolder.append('p')
+                            .text(`GENDER: ${response.GENDER}`)
+                            .append('br')
+                metadataHolder.append('p')
+                            .text(`LOCATION: ${response.LOCATION}`)
+                            
+                           
+            });
+            // console.log('change')
+            Plotly.d3.json('/otu',function(error,response) {
+                if(error){console.warn(error)};
+                let full_otu_desc = response.map(x=>x);
+                // console.log(opt)
+                Plotly.d3.json(`/samples/${opt}`,function(error,response) {
+                    if(error){console.warn(error)};
+                    // console.log(response.otu_ids)
+                    let otu_ids = response.otu_ids;
+                    let sample_values = response.sample_values;
+                    let trunc_otu_desc = [];
+                    for(elem in otu_ids) {
+                        trunc_otu_desc.push(full_otu_desc[otu_ids[elem]-1])
+                    }
+                    // console.log(trunc_otu_desc)
+        
+                    
+                    updatePlots(sample_values,otu_ids,trunc_otu_desc)
+                })
+            })
+            Plotly.d3.json(`/wfreq/${opt}`,function(error,response) {
+                if(error){console.warn(error)};
+                renderGage(response)
+            });
+        }
+        function renderGage(wfreq) {
+            // Enter a speed between 0 and 180
+            var level = wfreq*19+4;
+
+            // Trig to calc meter point
+            var degrees = 180 - level,
+                radius = .5;
+            var radians = degrees * Math.PI / 180;
+            var x = radius * Math.cos(radians);
+            var y = radius * Math.sin(radians);
+
+            // Path: may have to change to create a better triangle
+            var mainPath = 'M -.0 -0.025 L .0 0.025 L ',
+                pathX = String(x),
+                space = ' ',
+                pathY = String(y),
+                pathEnd = ' Z';
+            var path = mainPath.concat(pathX,space,pathY,pathEnd);
+
+            var data = [{ type: 'scatter',
+            x: [0], y:[0],
+                marker: {//size: 20,
+                 color:'850000'},
+                showlegend: false,
+                name: 'time(s)',
+                text: wfreq,
+                hoverinfo: 'text+name'},
+            { values: [35/9, 35/9, 35/9, 35/9, 35/9, 35/9, 35/9, 35/9, 35/9, 35],
+            rotation: 90,
+            text: ['8-9', '7-8', '6-7', '5-6',
+                        '4-5', '3-4', '2-3', '1-2', '0-1', ''],
+            textinfo: 'text',
+            textposition:'inside',
+            marker: {colors:['rgba(14, 127, 0, .5)', 'rgba(80, 140, 18, .5)', 'rgba(110, 154, 22, .5)',
+                                    'rgba(170, 202, 42, .5)', 'rgba(195, 207, 78, .5)', 'rgba(202, 209, 95, .5)',
+                                    'rgba(210, 206, 145, .5)', 'rgba(225, 220, 188, .5)', 'rgba(232, 226, 202, .5)',
+                                    'rgba(255, 255, 255, 0)']},
+            labels: ['8-9', '7-8', '6-7', '5-6', '4-5', '3-4', '2-3', '1-2', '0-1', ''],
+            hoverinfo: 'label',
+            hole: .5,
+            type: 'pie',
+            showlegend: false
+            }];
+
+            var layout = {
+            shapes:[{
+                type: 'path',
+                path: path,
+                fillcolor: '850000',
+                line: {
+                    color: '850000'
+                }
+                }],
+            title: 'Bellybutton Washing Per Week',
+            // height: 500,
+            // width: 500,
+            xaxis: {zeroline:false, showticklabels:false,
+                        showgrid: false, range: [-1, 1]},
+            yaxis: {zeroline:false, showticklabels:false,
+                        showgrid: false, range: [-1, 1]}
+            };
+
+            Plotly.newPlot('gage', data, layout);
+        }
+        function buildPlots(sample) {
+            Plotly.d3.json(`/metadata/${sample}`, function(error,response) {
+                // console.log(response)
+                
+                metadataHolder.append('p')
+                            .text(`AGE: ${response.AGE}`)
+                            .append('br')
+                metadataHolder.append('p')
+                            .text(`BBTYPE: ${response.BBTYPE}`)
+                            .append('br')
+                metadataHolder.append('p')
+                            .text(`ETHNICITY: ${response.ETHNICITY}`)
+                            .append('br')
+                metadataHolder.append('p')
+                            .text(`GENDER: ${response.GENDER}`)
+                            .append('br')
+                metadataHolder.append('p')
+                            .text(`LOCATION: ${response.LOCATION}`)
+                            
+                           
+            });
+            Plotly.d3.json('/otu',function(error,response) {
+                if(error){console.warn(error)};
+                let full_otu_desc = response.map(x=>x);
+                // console.log(sample)
+                Plotly.d3.json(`/samples/${sample}`,function(error,response) {
+                    if(error){console.warn(error)};
+                    // console.log(response.otu_ids)
+                    let otu_ids = response.otu_ids;
+                    let sample_values = response.sample_values;
+                    let trunc_otu_desc = [];
+                    for(elem in otu_ids) {
+                        trunc_otu_desc.push(full_otu_desc[otu_ids[elem]-1])
+                    }
+                    // console.log(sample_values)
+                    let trace1 = {
+                        values: sample_values.slice(0,10),
+                        labels: otu_ids.slice(0,10),
+                        hovertext: trunc_otu_desc.slice(0,10),
+                        type: 'pie'
+                    }
+                    let trace2 = {
+                        x: otu_ids,
+                        y: sample_values,
+                        marker: {
+                            size: sample_values,
+                            color: otu_ids
+                        },
+                        mode: 'markers',
+                        text: trunc_otu_desc
+
+                    }
+                    let layout1 = {
+                        showlegend: true
+                    }
+                    let layout2 = {
+                        showlegend: false
+                    }
+                    Plotly.newPlot('pie',[trace1],layout1)
+                    Plotly.newPlot('bubble',[trace2],layout2)
+                })
+            })
+            Plotly.d3.json(`/wfreq/${sample}`, function(error,response) {
+                if(error) {console.warn(error)};
+                renderGage(response);
+            });
+            
+        }
+
+        function buildOptions() {
+            Plotly.d3.json('/names', function(error,response) {
+                if(error){console.warn(error)} 
+                let names = response.map(data => data);
+                // console.log(names)
+                // optionSelector.selectAll('option').remove()
+                for(var x = 0; x< names.length;x++) {
+                    optionSelector.append('option')
+                                .attr('value',names[x])
+                                .text(names[x])
+                }
+                buildPlots(names[0])
+            });
+        }
+
+        function updatePlots(values,labels,text) {
+            let PIE = document.getElementById('pie')
+            Plotly.restyle(PIE,'values',[values.slice(0,10)])
+            Plotly.restyle(PIE,'labels',[labels.slice(0,10)])
+            Plotly.restyle(PIE,'hovertext',[text.slice(0,10)])
+
+            let BUBBLE = document.getElementById('bubble')
+            Plotly.restyle(BUBBLE,'y',[values])
+            Plotly.restyle(BUBBLE,'x',[labels])
+            Plotly.restyle(BUBBLE,'text',[text])
+            Plotly.restyle(BUBBLE,'marker',[{'size':values,'color':labels}])
+
+        }
+
+        buildOptions();
+    </script>
+
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+</body>
+</html>
